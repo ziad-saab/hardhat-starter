@@ -21,9 +21,11 @@
     "typechain": "^8.1.0"
   },
   "scripts": {
-    "compile": "rm -rf ../contract-types/src && hardhat compile"
+    "compile": "hardhat compile",
+    "test": "hardhat test"
   },
   "dependencies": {
+    "@hardhat-starter/contract-types": "*",
     "@openzeppelin/contracts": "^4.7.3",
     "@types/mocha": "^10.0.0"
   }
