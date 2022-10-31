@@ -1,0 +1,7 @@
+{
+  "name": "@hardhat-starter/contract-types",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "license": "MIT"
+}

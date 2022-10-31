@@ -1,0 +1,1 @@
+This package contains TypeScript types for the smart contracts in the `blockchain` package. The types are automatically generated when running the `yarn compile` script in the `blockchain` package.
