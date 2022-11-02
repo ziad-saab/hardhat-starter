@@ -14,6 +14,7 @@
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.3",
     "chai": "^4.3.6",
+    "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
     "hardhat": "^2.12.1",
     "hardhat-gas-reporter": "^1.0.9",
@@ -22,6 +23,8 @@
   },
   "scripts": {
     "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.ts",
+    "verify": "hardhat verify",
     "test": "hardhat test"
   },
   "dependencies": {

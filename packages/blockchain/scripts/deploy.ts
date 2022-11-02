@@ -5,8 +5,6 @@ async function main() {
   const VolcanoNFT = await ethers.getContractFactory("VolcanoNFT");
   const volcanoNFT = await VolcanoNFT.deploy();
 
-  console.log(volcanoNFT);
-
   await volcanoNFT.deployed();
 
   console.log(`Deployed: ${volcanoNFT.address}`);

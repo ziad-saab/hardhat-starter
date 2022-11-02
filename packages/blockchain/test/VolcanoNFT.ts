@@ -3,8 +3,8 @@ import { expect } from "chai";
 import { base64, parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
-const MINT_PRICE = parseEther("0.005");
-const overrides = {value: MINT_PRICE};
+const MINT_PRICE = parseEther("0.001");
+const overrides = { value: MINT_PRICE };
 
 describe("VolcanoNFT", function () {
   async function deployVolcanoNFT() {
@@ -57,17 +57,17 @@ describe("VolcanoNFT", function () {
       const { volcanoNFT, owner } = await loadFixture(deployVolcanoNFT);
 
       expect(
-        await volcanoNFT.mint(overrides)
+        await volcanoNFT.mint(overrides),
       ).to.changeEtherBalances(
         [volcanoNFT, owner],
-        [MINT_PRICE, -MINT_PRICE]
+        [MINT_PRICE, -MINT_PRICE],
       );
       
       expect(
-        await volcanoNFT.withdraw()
+        await volcanoNFT.withdraw(),
       ).to.changeEtherBalances(
         [volcanoNFT, owner],
-        [-MINT_PRICE, MINT_PRICE]
+        [-MINT_PRICE, MINT_PRICE],
       );
     });
   });

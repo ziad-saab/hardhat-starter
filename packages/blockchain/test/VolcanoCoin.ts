@@ -42,7 +42,7 @@ describe("VolcanoCoin", function () {
         const { volcanoCoin, otherAccount } = await loadFixture(deployVolcanoCoin);
 
         await expect(
-          volcanoCoin.connect(otherAccount).increaseTotalSupply()
+          volcanoCoin.connect(otherAccount).increaseTotalSupply(),
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
     });

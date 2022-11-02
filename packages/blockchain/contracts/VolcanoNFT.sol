@@ -21,13 +21,12 @@ contract VolcanoNFT is ERC721, Ownable {
 
   uint256 constant NUM_POLYS = 20;
   uint256 constant NUM_POINTS_PER_POLY = 3;
-  uint256 constant MINT_PRICE = 0.005 ether;
+  uint256 constant MINT_PRICE = 0.001 ether;
 
   constructor() ERC721("Volcano NFT", "LAVA") {}
 
   function mint() public payable returns (uint256) {
-    require(balanceOf(msg.sender) == 0, "You can only mint one Volcano NFT per account");
-    require(msg.value >= MINT_PRICE, "Mint price is 0.005 ETH");
+    require(msg.value >= MINT_PRICE, "Mint price is 0.001 ETH");
     tokenIdCounter.increment();
     uint256 tokenId = tokenIdCounter.current();
     _safeMint(msg.sender, tokenId);
