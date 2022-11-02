@@ -80,6 +80,8 @@ export const Mint = () => {
     watch: true,
   });
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
   const { write: contractMint, isLoading } = useContractWrite(config);
 
   const doMint = async () => {
