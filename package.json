@@ -21,5 +21,8 @@
   },
   "dependencies": {
     "eslint-plugin-unused-imports": "^2.0.0"
+  },
+  "scripts": {
+    "build:webapp": "(cd packages/blockchain && yarn compile) && (cd packages/contract-types && yarn tsc -b) && (cd packages/webapp && yarn build)"
   }
 }
