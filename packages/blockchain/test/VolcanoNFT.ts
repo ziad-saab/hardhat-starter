@@ -2,26 +2,43 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { base64, parseEther } from "ethers/lib/utils";
 import { ethers } from "hardhat";
+import { deployVolcanoCoin } from "./VolcanoCoin";
 
 const MINT_PRICE = parseEther("0.001");
 const overrides = { value: MINT_PRICE };
 
+async function deployVolcanoNFT() {
+  const [owner, otherAccount] = await ethers.getSigners();
+
+  const { volcanoCoin } = await deployVolcanoCoin();
+
+  const VolcanoNFT = await ethers.getContractFactory("VolcanoNFT");
+  const volcanoNFT = await VolcanoNFT.deploy(volcanoCoin.address);
+
+  return { volcanoCoin, volcanoNFT, owner, otherAccount };
+}
+
 describe("VolcanoNFT", function () {
-  async function deployVolcanoNFT() {
-    const [owner, otherAccount] = await ethers.getSigners();
-
-    const VolcanoNFT = await ethers.getContractFactory("VolcanoNFT");
-    const volcanoNFT = await VolcanoNFT.deploy();
-
-    return { volcanoNFT, owner, otherAccount };
-  }
 
   describe("Minting", function () {
-    it("Should allow to mint the next token if paying at least MINT_PRICE ETH", async function () {
+    it("Should allow to mint the next token if paying at least ETH_MINT_PRICE ETH", async function () {
       const { volcanoNFT } = await loadFixture(deployVolcanoNFT);
 
       const tokenId = await volcanoNFT.callStatic.mint(overrides);
       expect(tokenId).to.equal(1);
+    });
+    it("Should allow to mint the next token if paying LAVACOIN_MINT_PRICE LAVACOIN", async function() {
+      const { volcanoNFT, volcanoCoin } = await loadFixture(deployVolcanoNFT);
+
+      await volcanoCoin.approve(volcanoNFT.address, parseEther("1"));
+      const tokenId = await volcanoNFT.callStatic.mint();
+      expect(tokenId).to.equal(1);
+    });
+    it("Should disallow minting if not paying", async function() {
+      const { volcanoNFT } = await loadFixture(deployVolcanoNFT);
+      await expect(
+        volcanoNFT.callStatic.mint(),
+      ).to.be.revertedWith("ERC20: insufficient allowance");
     });
   });
 

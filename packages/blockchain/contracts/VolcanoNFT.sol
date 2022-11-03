@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./EllipticCurve.sol";
+import "./VolcanoCoin.sol";
 
 contract VolcanoNFT is ERC721, Ownable {
   
@@ -21,12 +22,23 @@ contract VolcanoNFT is ERC721, Ownable {
 
   uint256 constant NUM_POLYS = 20;
   uint256 constant NUM_POINTS_PER_POLY = 3;
-  uint256 constant MINT_PRICE = 0.001 ether;
+  uint256 constant ETH_MINT_PRICE = 0.001 ether;
+  uint256 constant VOLCANOCOIN_MINT_PRICE = 1 ether; // Not actual ether, just used to multiply by 10^decimals()
 
-  constructor() ERC721("Volcano NFT", "LAVA") {}
+  VolcanoCoin private immutable volcanoCoin;
+
+  constructor(VolcanoCoin _volcanoCoin) ERC721("Volcano NFT", "LAVA") {
+    volcanoCoin = _volcanoCoin;
+  }
 
   function mint() public payable returns (uint256) {
-    require(msg.value >= MINT_PRICE, "Mint price is 0.001 ETH");
+    if (msg.value < ETH_MINT_PRICE) {
+      require(
+        volcanoCoin.transferFrom(msg.sender, address(this), VOLCANOCOIN_MINT_PRICE),
+        "Mint price is either 0.001 ETH or 1 LAVACOIN"
+      );
+    }
+
     tokenIdCounter.increment();
     uint256 tokenId = tokenIdCounter.current();
     _safeMint(msg.sender, tokenId);
