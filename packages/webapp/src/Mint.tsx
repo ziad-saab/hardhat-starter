@@ -1,8 +1,9 @@
 import { VolcanoCoin__factory, VolcanoNFT__factory } from "@hardhat-starter/contract-types";
 import { ConnectKitButton } from "connectkit";
 import { parseEther } from "ethers/lib/utils";
-import { useAccount, useContractRead, useContractWrite, useDisconnect, useEnsName, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
+import { useAccount, useContractRead, useDisconnect, useEnsName, useSigner } from "wagmi";
 import styled from "@emotion/styled";
+import { useState } from "react";
 
 const Container = styled.main`
   width: 100vw;
@@ -61,116 +62,56 @@ const MainUi = styled.div`
   align-items: center;
 `;
 
-const nftContract = {
-  address: "0x610aC004B46e60c6f9D29DED3836c977F6b891cb",
-  abi: VolcanoNFT__factory.abi,
-};
-
-const coinContract = {
-  address: "0x35f3dE7dd7C9F8b0185fCBf7F1C4c2C145d494D9",
-  abi: VolcanoCoin__factory.abi,
-};
+const nftContractAddress = "0x610aC004B46e60c6f9D29DED3836c977F6b891cb";
+const coinContractAddress = "0x35f3dE7dd7C9F8b0185fCBf7F1C4c2C145d494D9";
 
 export const Mint = () => {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect({});
   const { data: ensName } = useEnsName({
-    address: address?.toLowerCase() as `0x${string}` | undefined,
-  });
-
-  // Mint with LAVACOIN
-  const { config: configApproveLavaCoin } = usePrepareContractWrite({
-    ...coinContract,
-    functionName: "approve",
-    args: [nftContract.address, parseEther("1")],
-  });
-  const {
-    write: approveLavaCoin,
-    isLoading: isApproveLoading,
-    isSuccess: isApproveStarted,
-    data: approveData,
-    error: approveError,
-    reset: resetApprove,
-    // @ts-expect-error Will be fixed when https://github.com/dethcrypto/TypeChain/pull/783 is released
-  } = useContractWrite(configApproveLavaCoin);
-
-  const {
-    error: txApproveError,
-  } = useWaitForTransaction({
-    hash: approveData?.hash,
-    onSuccess() {
-      resetApprove();
-      mintWithLavaCoin?.();
-    },
-  });
-
-  // const { config: configMintWithLavaCoin } = usePrepareContractWrite({
-  //   ...nftContract,
-  //   functionName: "mint",
-  //   enabled: approveSuccess,
-  // });
-  const {
-    write: mintWithLavaCoin,
-    isLoading: isMintWithLavaCoinLoading,
-    isSuccess: isMintWithLavaCoinStarted,
-    data: mintWithLavaCoinData,
-    error: mintWithLavaCoinError,
-    reset: resetMintWithLavaCoin,
-  } = useContractWrite({
-    ...nftContract,
-    functionName: "mint",
-    mode: "recklesslyUnprepared",
-  });
-
-  const doMintWithLavaCoin = () => {
-    approveLavaCoin?.();
-  };
-
-  const {
-    error: txMintWithLavaCoinError,
-  } = useWaitForTransaction({
-    hash: mintWithLavaCoinData?.hash,
-    onSuccess() {
-      resetMintWithLavaCoin();
-    },
-  });
-
-
-  // Mint with ETH
-  const { config: configMintWithEth } = usePrepareContractWrite({
-    ...nftContract,
-    functionName: "mint",
-    overrides: {
-      value: parseEther("0.001"),
-    },
+    // @ts-expect-error When https://github.com/wagmi-dev/wagmi/pull/1201 gets released, remove the toLowerCase
+    address: address?.toLowerCase(),
   });
 
   const {
-    write: mintWithEth,
-    isLoading: isMintWithEthLoading,
-    isSuccess: isMintWithEthStarted,
-    data: mintWithEthData,
-    error: mintWithEthError,
-    reset: resetMintWithEth,
-    // @ts-expect-error Will be fixed when https://github.com/dethcrypto/TypeChain/pull/783 is released
-  } = useContractWrite(configMintWithEth);
+    data: signer,
+  } = useSigner();
+  const NftContract = new VolcanoNFT__factory(signer || undefined);
+  const nftContract = NftContract.attach(nftContractAddress);
+  const CoinContract = new VolcanoCoin__factory(signer || undefined);
+  const coinContract = CoinContract.attach(coinContractAddress);
 
+  const [mintWithEthStatus, setMintWithEthStatus] = useState<"idle" | "loading" | "started">("idle");
   const doMintWithEth = async () => {
-    await mintWithEth?.();
+    setMintWithEthStatus("loading");
+    const tx = await nftContract.mint({
+      value: parseEther("0.001"),
+    });
+    setMintWithEthStatus("started");
+    await tx.wait();
+    setMintWithEthStatus("idle");
   };
 
-  const {
-    error: txMintWithEthError,
-  } = useWaitForTransaction({
-    hash: mintWithEthData?.hash,
-    onSuccess() {
-      resetMintWithEth();
-    },
-  });
+  const [mintWithCoinStatus, setMintWithCoinStatus] = useState<"idle" | "loadingApprove" | "startedApprove" | "loadingMint" | "startedMint">("idle");
+  const doMintWithLavaCoin = async () => {
+    setMintWithCoinStatus("loadingApprove");
+    const approveTx = await coinContract.approve(
+      nftContract.address,
+      parseEther("1"),
+    );
+    setMintWithCoinStatus("startedApprove");
+    await approveTx.wait();
+    setMintWithCoinStatus("loadingMint");
+    const mintTx = await nftContract.mint();
+    setMintWithCoinStatus("startedMint");
+    await mintTx.wait();
+    setMintWithCoinStatus("idle");
+  };
 
   // Number of tokens owned request
   const { data: numberOfTokensOwned } = useContractRead({
-    ...nftContract,
+    address: nftContractAddress,
+    abi: VolcanoNFT__factory.abi,
     functionName: "balanceOf",
     args: address && [address],
     watch: true,
@@ -201,53 +142,30 @@ export const Mint = () => {
           You currently have {numberOfTokensOwned?.toString()} Volcano NFTs
         </p>
         <Button
-          disabled={!mintWithEth || isMintWithEthLoading || isMintWithEthStarted}
+          disabled={mintWithEthStatus !== "idle"}
           type="button"
           onClick={doMintWithEth}
         >
-          {isMintWithEthLoading && "Waiting for approval"}
-          {isMintWithEthStarted && "Minting..."}
-          {!isMintWithEthLoading && !isMintWithEthStarted && "Mint with ETH!"}
+          {
+            mintWithEthStatus === "idle" ? "Mint with ETH!" :
+              mintWithEthStatus === "loading" ? "Waiting for approval" :
+                "Minting..."
+          }
         </Button>
         <Button
-          disabled={
-            !(approveLavaCoin || mintWithLavaCoin) ||
-            isMintWithLavaCoinLoading ||
-            isMintWithLavaCoinStarted ||
-            isApproveLoading ||
-            isApproveStarted
-          }
+          disabled={mintWithCoinStatus !== "idle"}
           type="button"
           onClick={doMintWithLavaCoin}
         >
-          {(isMintWithLavaCoinLoading || isApproveLoading) && "Waiting for approval"}
-          {isApproveStarted && "Approving LAVACOIN..."}
-          {isMintWithLavaCoinStarted && "Minting..."}
           {
-            !isMintWithLavaCoinLoading &&
-            !isMintWithLavaCoinStarted &&
-            !isApproveLoading &&
-            !isApproveStarted &&
-            "Mint with LAVACOIN!"
+            mintWithCoinStatus === "idle" ? "Mint with LAVACOIN!" :
+              mintWithCoinStatus === "loadingApprove" ? "Waiting for approval" :
+                mintWithCoinStatus === "startedApprove" ? "Approving coin..." :
+                  mintWithCoinStatus === "loadingMint" ? "Waiting for approval" :
+                    "Minting..."
           }
         </Button>
         <Button type="button" onClick={() => disconnect()}>Disconnect Wallet</Button>
-        {
-          [
-            mintWithEthError,
-            txMintWithEthError,
-            approveError,
-            txApproveError,
-            mintWithLavaCoinError,
-            txMintWithLavaCoinError,
-          ]
-            .filter((x): x is Error => x instanceof Error)
-            .map(err => (
-              <p key={err.name} style={{ marginTop: 24, color: "#FF6257" }}>
-                Error: {err.message}
-              </p>
-            ))
-        }
       </MainUi>
     );
   };
