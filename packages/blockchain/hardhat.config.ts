@@ -3,7 +3,12 @@ import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.17",
+  solidity: {
+    version: "0.8.17",
+    settings: {
+      optimize: true,
+    },
+  },
   typechain: {
     outDir: "../contract-types/src",
   },

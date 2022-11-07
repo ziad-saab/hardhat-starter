@@ -69,8 +69,7 @@ export const Mint = () => {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect({});
   const { data: ensName } = useEnsName({
-    // @ts-expect-error When https://github.com/wagmi-dev/wagmi/pull/1201 gets released, remove the toLowerCase
-    address: address?.toLowerCase(),
+    address,
   });
 
   const {

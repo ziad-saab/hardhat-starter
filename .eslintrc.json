@@ -51,6 +51,7 @@
                 "args": "after-used",
                 "argsIgnorePattern": "^_"
             }
-		]
+		],
+        "object-shorthand": ["error", "properties"]
     }
 }
