@@ -1,9 +1,14 @@
-import { VolcanoCoin__factory, VolcanoNFT__factory } from "@hardhat-starter/contract-types";
+import { VolcanoCoin, VolcanoCoin__factory, VolcanoNFT, VolcanoNFT__factory } from "@hardhat-starter/contract-types";
 import { ConnectKitButton } from "connectkit";
 import { parseEther } from "ethers/lib/utils";
-import { useAccount, useContractRead, useDisconnect, useEnsName, useSigner } from "wagmi";
+import { useAccount, useDisconnect, useEnsName, useSigner, useNetwork, useContractRead } from "wagmi";
 import styled from "@emotion/styled";
 import { useState } from "react";
+import deployments from "~/deployments.json";
+
+function isValidChainId(chainId?: string | number | symbol): chainId is keyof typeof deployments {
+  return !!chainId && chainId in deployments;
+}
 
 const Container = styled.main`
   width: 100vw;
@@ -48,10 +53,10 @@ const AddressDisplay = styled.div`
   & > * {
     margin: 8px 0;
   }
-  & > :first-child {
+  & > :first-of-type {
     font-size: 0.8em;
   }
-  & > :nth-child(2) {
+  & > :nth-of-type(2) {
     font-size: 1.2em;
   }
 `;
@@ -62,54 +67,95 @@ const MainUi = styled.div`
   align-items: center;
 `;
 
-const nftContractAddress = "0x610aC004B46e60c6f9D29DED3836c977F6b891cb";
-const coinContractAddress = "0x35f3dE7dd7C9F8b0185fCBf7F1C4c2C145d494D9";
-
 export const Mint = () => {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect({});
+  const network = useNetwork();
+  const chainId = network.chain?.id.toString();
+  const chainName = network.chain?.name;
   const { data: ensName } = useEnsName({
     address,
+    enabled: !!network.chain?.ens,
   });
 
   const {
     data: signer,
   } = useSigner();
-  const NftContract = new VolcanoNFT__factory(signer || undefined);
-  const nftContract = NftContract.attach(nftContractAddress);
-  const CoinContract = new VolcanoCoin__factory(signer || undefined);
-  const coinContract = CoinContract.attach(coinContractAddress);
+
+
+  let coinAddress: string | undefined;
+  let nftAddress: string | undefined;
+  let nftContract: VolcanoNFT | undefined;
+  let coinContract: VolcanoCoin | undefined;
+  const isValidNetwork = isValidChainId(chainId);
+  if (isValidNetwork) {
+    coinAddress = deployments[chainId][0].contracts.VolcanoCoin.address;
+    nftAddress = deployments[chainId][0].contracts.VolcanoNFT.address;
+
+    const NftContract = new VolcanoNFT__factory(signer || undefined);
+    const CoinContract = new VolcanoCoin__factory(signer || undefined);
+    nftContract = NftContract.attach(nftAddress || "");
+    coinContract = CoinContract.attach(coinAddress || "");    
+  }
+
 
   const [mintWithEthStatus, setMintWithEthStatus] = useState<"idle" | "loading" | "started">("idle");
   const doMintWithEth = async () => {
-    setMintWithEthStatus("loading");
-    const tx = await nftContract.mint({
-      value: parseEther("0.001"),
-    });
-    setMintWithEthStatus("started");
-    await tx.wait();
-    setMintWithEthStatus("idle");
+    try {
+      if (nftContract) {
+        setMintWithEthStatus("loading");
+        const tx = await nftContract.mint({
+          value: parseEther("0.001"),
+        });
+        setMintWithEthStatus("started");
+        await tx.wait();
+        setMintWithEthStatus("idle");
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert(JSON.stringify(err));
+      }
+    } finally {
+      setMintWithEthStatus("idle");
+    }
   };
 
   const [mintWithCoinStatus, setMintWithCoinStatus] = useState<"idle" | "loadingApprove" | "startedApprove" | "loadingMint" | "startedMint">("idle");
   const doMintWithLavaCoin = async () => {
-    setMintWithCoinStatus("loadingApprove");
-    const approveTx = await coinContract.approve(
-      nftContract.address,
-      parseEther("1"),
-    );
-    setMintWithCoinStatus("startedApprove");
-    await approveTx.wait();
-    setMintWithCoinStatus("loadingMint");
-    const mintTx = await nftContract.mint();
-    setMintWithCoinStatus("startedMint");
-    await mintTx.wait();
-    setMintWithCoinStatus("idle");
+    try {
+      if (nftContract && coinContract && address) {
+        setMintWithCoinStatus("loadingApprove");
+        const coinBalance = await coinContract.balanceOf(address);
+        if (coinBalance.lt(parseEther("1"))) {
+          throw new Error("You need at least 1 LAVACOIN");
+        }
+        const approveTx = await coinContract.approve(
+          nftContract.address,
+          parseEther("1"),
+        );
+        setMintWithCoinStatus("startedApprove");
+        await approveTx.wait();
+        setMintWithCoinStatus("loadingMint");
+        const mintTx = await nftContract.mint();
+        setMintWithCoinStatus("startedMint");
+        await mintTx.wait();
+        setMintWithCoinStatus("idle");
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert(JSON.stringify(err));
+      }
+    } finally {
+      setMintWithCoinStatus("idle");
+    }
   };
 
-  // Number of tokens owned request
   const { data: numberOfTokensOwned } = useContractRead({
-    address: nftContractAddress,
+    address: nftAddress,
     abi: VolcanoNFT__factory.abi,
     functionName: "balanceOf",
     args: address && [address],
@@ -128,6 +174,12 @@ export const Mint = () => {
             );
           }}
         </ConnectKitButton.Custom>
+      );
+    }
+
+    if (!isValidNetwork) {
+      return (
+        <p>Please switch to a valid network to mint!</p>
       );
     }
 
@@ -171,7 +223,7 @@ export const Mint = () => {
 
   return (
     <Container>
-      <h1>Volcano NFT Mint ❤️‍🔥</h1>
+      <h1>Volcano NFT Mint ❤️‍🔥 ({chainName})</h1>
       <section>
         {renderUi()}
       </section>

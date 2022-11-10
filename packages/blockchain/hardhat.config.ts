@@ -1,12 +1,16 @@
 import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
+import "hardhat-deploy";
+import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-toolbox";
 
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.17",
     settings: {
-      optimize: true,
+      optimizer: {
+        enabled: true,
+      },
     },
   },
   typechain: {

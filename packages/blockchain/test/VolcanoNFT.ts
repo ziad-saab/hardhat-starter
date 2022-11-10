@@ -1,8 +1,6 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { base64, parseEther } from "ethers/lib/utils";
-import { ethers } from "hardhat";
-import { deployVolcanoCoin } from "./VolcanoCoin";
+import { ethers, deployments } from "hardhat";
 
 const MINT_PRICE = parseEther("0.001");
 const overrides = { value: MINT_PRICE };
@@ -10,10 +8,9 @@ const overrides = { value: MINT_PRICE };
 async function deployVolcanoNFT() {
   const [owner, otherAccount] = await ethers.getSigners();
 
-  const { volcanoCoin } = await deployVolcanoCoin();
-
-  const VolcanoNFT = await ethers.getContractFactory("VolcanoNFT");
-  const volcanoNFT = await VolcanoNFT.deploy(volcanoCoin.address);
+  await deployments.fixture(["nft"]);
+  const volcanoCoin = await ethers.getContract("VolcanoCoin");
+  const volcanoNFT = await ethers.getContract("VolcanoNFT");
 
   return { volcanoCoin, volcanoNFT, owner, otherAccount };
 }
@@ -22,20 +19,20 @@ describe("VolcanoNFT", function () {
 
   describe("Minting", function () {
     it("Should allow to mint the next token if paying at least ETH_MINT_PRICE ETH", async function () {
-      const { volcanoNFT } = await loadFixture(deployVolcanoNFT);
+      const { volcanoNFT } = await deployVolcanoNFT();
 
       const tokenId = await volcanoNFT.callStatic.mint(overrides);
       expect(tokenId).to.equal(1);
     });
     it("Should allow to mint the next token if paying LAVACOIN_MINT_PRICE LAVACOIN", async function() {
-      const { volcanoNFT, volcanoCoin } = await loadFixture(deployVolcanoNFT);
+      const { volcanoNFT, volcanoCoin } = await deployVolcanoNFT();
 
       await volcanoCoin.approve(volcanoNFT.address, parseEther("1"));
       const tokenId = await volcanoNFT.callStatic.mint();
       expect(tokenId).to.equal(1);
     });
     it("Should disallow minting if not paying", async function() {
-      const { volcanoNFT } = await loadFixture(deployVolcanoNFT);
+      const { volcanoNFT } = await deployVolcanoNFT();
       await expect(
         volcanoNFT.callStatic.mint(),
       ).to.be.revertedWith("ERC20: insufficient allowance");
@@ -44,7 +41,7 @@ describe("VolcanoNFT", function () {
 
   describe("Transfering", function() {
     it("Should allow token transfer between two accounts", async function() {
-      const { volcanoNFT, owner, otherAccount } = await loadFixture(deployVolcanoNFT);
+      const { volcanoNFT, owner, otherAccount } = await deployVolcanoNFT();
 
       const tokenId = await volcanoNFT.callStatic.mint(overrides);
       await volcanoNFT.mint(overrides);
@@ -57,7 +54,7 @@ describe("VolcanoNFT", function () {
 
   describe("Metadata", function() {
     it("Should output JSON metadata with SVG image", async function() {
-      const { volcanoNFT } = await loadFixture(deployVolcanoNFT);
+      const { volcanoNFT } = await deployVolcanoNFT();
       await volcanoNFT.mint(overrides);
       const [, maybeBase64Json] = (await volcanoNFT.tokenURI(1)).split(",", 2);
       const maybeJson = Buffer.from(base64.decode(maybeBase64Json)).toString("utf-8");
@@ -71,7 +68,7 @@ describe("VolcanoNFT", function () {
 
   describe("Funding", function() {
     it("Should allow the owner to withdraw the funds", async function() {
-      const { volcanoNFT, owner } = await loadFixture(deployVolcanoNFT);
+      const { volcanoNFT, owner } = await deployVolcanoNFT();
 
       expect(
         await volcanoNFT.mint(overrides),
