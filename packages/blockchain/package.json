@@ -27,6 +27,7 @@
   },
   "scripts": {
     "compile": "hardhat compile && (cd ../contract-types && yarn tsc -b)",
+    "deploy": "hardhat deploy --export-all ../webapp/src/deployments.json",
     "verify": "hardhat verify",
     "test": "hardhat test"
   }
