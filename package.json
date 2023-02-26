@@ -16,11 +16,9 @@
     "@typescript-eslint/parser": "^5.41.0",
     "eslint": "^8.26.0",
     "eslint-plugin-react": "^7.31.10",
+    "eslint-plugin-unused-imports": "^2.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^4.8.4"
-  },
-  "dependencies": {
-    "eslint-plugin-unused-imports": "^2.0.0"
   },
   "scripts": {
     "build:webapp": "(cd packages/blockchain && yarn compile) && (cd packages/contract-types && yarn tsc -b) && (cd packages/webapp && yarn build)"
